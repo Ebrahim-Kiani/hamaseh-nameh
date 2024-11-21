@@ -40,7 +40,18 @@ class RegisterAPIView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data.get('email')
+
+        user = User.objects.filter(email=email).exists()
+        # Check if the email already exists in the database
+        if user is not None:
+            print(True)
+            response_data = {
+                'message': 'This email is already exist. Please use a different email.'
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
         if not validate_email(email):
+            print("email is not valid")
             response_data = {
                 'message': 'Email does not valid or exist!! please enter correct email.'
             }

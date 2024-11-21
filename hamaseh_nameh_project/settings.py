@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-=3&cyhfy6#0(7n%$$v0kei*92c-9a3$kw^*%@t3li$^b#0zfjc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", ""]
 
 
 # Application definition
@@ -163,7 +163,7 @@ SIMPLE_JWT = {
 
 # Setting for custom_aut_backend File  ( Customize Authentication Back-End)
 AUTHENTICATION_BACKENDS = [
-    'Karoo_BackEnd.custom_auth_backend.CustomAuthBackend',
+    'hamaseh_nameh_project.custom_auth_backend.CustomAuthBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 # Setting for email host

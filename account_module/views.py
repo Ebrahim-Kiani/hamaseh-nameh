@@ -46,14 +46,14 @@ class RegisterAPIView(generics.CreateAPIView):
         if user is not None:
             print(True)
             response_data = {
-                'message': 'This email is already exist. Please use a different email.'
+                'message': 'این ایمیل از قبل وارد شده است! لطفا یک ایمیل دیگر وارد کنید'
             }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
         if not validate_email(email):
             print("email is not valid")
             response_data = {
-                'message': 'Email does not valid or exist!! please enter correct email.'
+                'message': 'ایمیل معتبر نیست یا از قبل ثبت شده است!! لطفا دوباره تلاش کنید'
             }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
@@ -64,7 +64,7 @@ class RegisterAPIView(generics.CreateAPIView):
 
         # Custom response
         response_data = {
-            'message': 'User registered successfully.',
+            'message': 'کاربر با موفقیت ثبت نام شد.',
         }
         return Response(response_data, status=status.HTTP_201_CREATED)
 
@@ -141,7 +141,7 @@ class UserSettingAPIView(generics.RetrieveUpdateAPIView):
         new_email = serializer.validated_data.get('email')
         if new_email and not validate_email(new_email):  # Assuming you have a validate_email function
             response_data = {
-                'message': 'Email does not valid or exist!! please enter correct email.'
+                'message': 'ایمیل معتبر نیست یا از قبل ثبت شده است! لطفا دوباره تلاش کنید'
             }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
@@ -168,8 +168,8 @@ class UserSettingAPIView(generics.RetrieveUpdateAPIView):
             send_activation_email(user, template_name, subject, host, scheme)
 
             response_data = {
-                'message': 'Your new email address has been set, but it needs to be activated.'
-                           ' Please check your inbox for an activation email.',
+                'message': 'ایمیل شما با موفقیت ثبت شده است اما حساب کاربری شما فعال نیست!'
+                           'لطفا صندوق ورودی خود را برای ایمیل تایید چک کنید',
                 **serializer.data  # Unpack serializer data into the dictionary
             }
             return Response(response_data, status=status.HTTP_200_OK)
@@ -280,7 +280,7 @@ class ForgotPasswordAPIView(APIView):
             # It's a good practice not to confirm whether an email exists in the database for security purposes.
             # You can return a generic message that doesn't indicate whether or not the email was found.
             return Response({
-                'message': 'we sent you an Email for reset your password.'
+                'message': 'ما یک ایمیل برای تغیر رمز عبور برای شما ارسال کردیم'
             }, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -309,9 +309,9 @@ class ResetPasswordView(View):
             # Optionally, log in the user automatically after password reset
             # auth.login(request, user)
 
-            return HttpResponse("Password reset successful")
+            return HttpResponse("رمز با موفقیت تغیر کرد")
         except User.DoesNotExist:
-            return HttpResponse("User does not exist")
+            return HttpResponse("کاربر وجود ندارد")
 
 
 class DiscountCodeAPIView(generics.RetrieveAPIView):
@@ -339,9 +339,9 @@ class LogoutAPIView(APIView):
             token = RefreshToken(refresh_token)
             token.blacklist()
 
-            return Response({'message': 'You have been successfully logged out.'}, status=status.HTTP_200_OK)
+            return Response({'message': 'شما با موفقیت خارج شدید!'}, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({'message': 'An error occurred during logout.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'یک خطا هنگام خروج پیش آمد لطفا دوباره تلاش کنید'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DeleteAccountView(APIView):
@@ -354,7 +354,7 @@ class DeleteAccountView(APIView):
 
         if serializer.is_valid():
             user.delete()
-            return Response({'message': 'User has been successfully deleted.'}, status=status.HTTP_200_OK)
+            return Response({'message': 'کاربر با موفقیت حذف شد'}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

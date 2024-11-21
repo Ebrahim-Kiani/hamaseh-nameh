@@ -1,0 +1,16 @@
+{
+    "disks":[
+        {
+            "name": "database",
+            "mountTo": "database"
+        },
+        {
+            "name": "media",
+            "mountTo": "media"
+        }
+    ],
+    "app": "karoo",
+    "build": {
+        "location": "germany"
+    }
+}

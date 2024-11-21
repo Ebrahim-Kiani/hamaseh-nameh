@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>فعالسازی حساب کاربری</title>
+</head>
+<body>
+    <div class="container">
+        
+        <p>کاربر گرامی جهت فعال سازی اکانت خود بر روی لینک زیر کلیک کنید</p>
+        <a href="{{ scheme }}://{{ host }}{% url 'account-activator-url' active_code=user_active_code %}" class="button">فعالسازی حساب کاربری </a>
+    </div>
+</body>
+</html>

@@ -41,7 +41,7 @@ class RegisterAPIView(generics.CreateAPIView):
 
         email = serializer.validated_data.get('email')
 
-        user = User.objects.filter(email=email).exists()
+        user = User.objects.filter(email=email).first()
         # Check if the email already exists in the database
         if user is not None:
             print(True)

@@ -1,11 +1,12 @@
+from django.db.models import Avg
 from rest_framework import serializers
-from .models import memory, memory_pictures, memory_comments
+from .models import memory, memory_pictures, memory_comments, Rating
 from account_module.models import Address
 
 
 class memory_commentsSerializer(serializers.ModelSerializer):
     user_full_name = serializers.SerializerMethodField()
-    user_email = serializers.SerializerMethodField()
+    user_phone = serializers.SerializerMethodField()
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
@@ -15,8 +16,8 @@ class memory_commentsSerializer(serializers.ModelSerializer):
     def get_user_full_name(self, obj):
         return obj.user.full_name
 
-    def get_user_email(self, obj):
-        return obj.user.email
+    def get_user_phone(self, obj):
+        return obj.user.phone
 
 
 class memory_picturesSerializer(serializers.ModelSerializer):
@@ -35,7 +36,8 @@ class memorySerializer(serializers.ModelSerializer):
     class Meta:
         model = memory
         fields = ['id', 'title', 'SubCategory', 'Sub_category_title', 'user', 'main_picture', 'main_picture_url',
-                  'pictures', 'description', 'comments']
+                  'pictures', 'description', 'comments', 'status', 'county']
+        read_only_fields = ['status']  # Mark 'status' as read-only
 
     def update(self, instance, validated_data):
         validated_data.pop('description', None)
@@ -67,7 +69,7 @@ class memorylistSerializer(serializers.ModelSerializer):
     comments = memory_commentsSerializer(many=True, read_only=True)
     user_full_name = serializers.SerializerMethodField()
     Sub_category_title = serializers.SerializerMethodField()
-    user_email = serializers.SerializerMethodField()
+    user_phone = serializers.SerializerMethodField()
     user_avatar_url = serializers.SerializerMethodField()
     main_picture_url = serializers.SerializerMethodField()
     user_addresses_city = serializers.SerializerMethodField()
@@ -75,14 +77,20 @@ class memorylistSerializer(serializers.ModelSerializer):
     class Meta:
         model = memory
         fields = [
-            'id', 'title', 'Sub_category_title', 'user_full_name', 'user_email', 'user_addresses_city',
-            'user_avatar_url', 'main_picture', 'main_picture_url', 'pictures', 'comments']
+            'id', 'title', 'Sub_category_title', 'user_full_name', 'user_phone', 'user_addresses_city',
+            'user_avatar_url', 'main_picture', 'main_picture_url', 'pictures', 'comments', 'average_rating'
+        ]
 
     def get_user_full_name(self, obj):
         return obj.user.full_name
 
-    def get_user_email(self, obj):
-        return obj.user.email
+    # def get_rating(self, obj):
+    #     # Calculate the average rating dynamically
+    #     return obj.ratings.aggregate(avg_rating=Avg('value'))['avg_rating'] or 0.0
+
+
+    def get_user_phone(self, obj):
+        return obj.user.phone
 
     def get_main_picture_url(self, obj):
         if obj.main_picture and obj.main_picture.image:
@@ -107,3 +115,20 @@ class memorylistSerializer(serializers.ModelSerializer):
             return address.city
         except Address.DoesNotExist:
             return None
+
+
+class RatingSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = Rating
+        fields = "__all__"
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        memory = attrs.get('memory')
+
+        if Rating.objects.filter(memory=memory, user=user).exists():
+            raise serializers.ValidationError("You have already rated this memory.")
+
+        return attrs

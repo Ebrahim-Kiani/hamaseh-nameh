@@ -6,7 +6,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Address, DiscountCode, Province, City
 from .seryalizers import (UserSerialaizer, LoginSerializer, UserSettingSerializer, UserAddressSerializer
-, ForgotPasswordLinkSerializer, DiscountCodeSerializer, UserDeleteAccountSerializer, ProvinceSerializer, CitySerializer)
+, DiscountCodeSerializer, UserDeleteAccountSerializer, ProvinceSerializer, CitySerializer
+,UserPublicInfoSerializer)
 from rest_framework import generics, status, views
 from django.contrib.auth import get_user_model
 from account_module.utils.jwt_token_generator import get_token_for_user
@@ -20,6 +21,23 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
 
+import re
+
+
+def validate_phone_number(phone_number):
+    """
+    Validate a phone number to match the style "09xxxxxxxxx".
+
+    Args:
+        phone_number (str): The phone number to validate.
+
+    Returns:
+        bool: True if valid, False otherwise.
+    """
+    pattern = r"^09\d{9}$"  # Regular expression for "09xxxxxxxxx"
+    return bool(re.match(pattern, phone_number))
+
+
 
 class RegisterAPIView(generics.CreateAPIView):
     authentication_classes = []
@@ -28,39 +46,36 @@ class RegisterAPIView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerialaizer
 
-    def perform_create(self, serializer, host, scheme):
-        user = serializer.save()
-        # Generate activation code and send email
-        subject = 'Account Registration'
-        template_name = 'email/activate_account.html'
-        send_activation_email(user, template_name, subject, host, scheme)
+    # def perform_create(self, serializer, host, scheme):
+    #     user = serializer.save()
+    #     # Generate activation code and send email
+    #     subject = 'Account Registration'
+    #     template_name = 'email/activate_account.html'
+    #     send_activation_email(user, template_name, subject, host, scheme)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        email = serializer.validated_data.get('email')
+        phone = serializer.validated_data.get('phone')
 
-        user = User.objects.filter(email=email).first()
-        # Check if the email already exists in the database
+        user = User.objects.filter(phone=phone).first()
+        # Check if the phone already exists in the database
         if user is not None:
-            print(True)
+
             response_data = {
-                'message': 'این ایمیل از قبل وارد شده است! لطفا یک ایمیل دیگر وارد کنید'
+                'message': 'این شماره از قبل وارد شده است! لطفا یک شماره دیگر وارد کنید'
             }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-        if not validate_email(email):
-            print("email is not valid")
+        if not validate_phone_number(phone):
+            print("phone is not valid")
             response_data = {
-                'message': 'ایمیل معتبر نیست یا از قبل ثبت شده است!! لطفا دوباره تلاش کنید'
+                'message': 'شماره معتبر نیست یا از قبل ثبت شده است!! لطفا دوباره تلاش کنید'
             }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-        host = request.META.get('HTTP_HOST')
-        scheme = 'https' if request.is_secure() else 'http'
-
-        self.perform_create(serializer, host, scheme)
+        self.perform_create(serializer)
 
         # Custom response
         response_data = {
@@ -69,31 +84,31 @@ class RegisterAPIView(generics.CreateAPIView):
         return Response(response_data, status=status.HTTP_201_CREATED)
 
 
-class ActivateAccountAPIView(View):
-
-    def get(self, request, active_code):
-        user: User = User.objects.filter(email_active_code__iexact=active_code).first()
-        if user is not None:
-            if not expiretime_validator(user):
-                if not user.is_active:
-                    user.is_active = True
-                    generate_activate_code(user)
-                    message = {'message': 'Your account has been successfully activated'}
-                    return JsonResponse(message
-                                        , status=status.HTTP_201_CREATED)
-                else:
-                    message = {'message': 'Your account was active'}
-                    return JsonResponse(message
-                                        , status=status.HTTP_200_OK)
-            else:
-                message = {'message': 'Your active code is expired please resend it'}
-                return JsonResponse(message
-                                    , status=status.HTTP_400_BAD_REQUEST)
-
-        else:
-            message = {'message': 'Your account could not be found, the code may not be correct.'}
-            return JsonResponse(message
-                                , status=status.HTTP_404_NOT_FOUND)
+# class ActivateAccountAPIView(View):
+#
+#     def get(self, request, active_code):
+#         user: User = User.objects.filter(email_active_code__iexact=active_code).first()
+#         if user is not None:
+#             if not expiretime_validator(user):
+#                 if not user.is_active:
+#                     user.is_active = True
+#                     generate_activate_code(user)
+#                     message = {'message': 'Your account has been successfully activated'}
+#                     return JsonResponse(message
+#                                         , status=status.HTTP_201_CREATED)
+#                 else:
+#                     message = {'message': 'Your account was active'}
+#                     return JsonResponse(message
+#                                         , status=status.HTTP_200_OK)
+#             else:
+#                 message = {'message': 'Your active code is expired please resend it'}
+#                 return JsonResponse(message
+#                                     , status=status.HTTP_400_BAD_REQUEST)
+#
+#         else:
+#             message = {'message': 'Your account could not be found, the code may not be correct.'}
+#             return JsonResponse(message
+#                                 , status=status.HTTP_404_NOT_FOUND)
 
 
 class LoginAPIView(views.APIView):
@@ -132,14 +147,14 @@ class UserSettingAPIView(generics.RetrieveUpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         user = self.get_object()
-        original_email = user.email
+        original_phone = user.phone
 
         serializer = self.get_serializer(user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
-        # Validate the email
-        new_email = serializer.validated_data.get('email')
-        if new_email and not validate_email(new_email):  # Assuming you have a validate_email function
+        # Validate the phone
+        new_phone = serializer.validated_data.get('phone')
+        if new_phone and not validate_phone_number(new_phone):  # Assuming you have a validate_phone function
             response_data = {
                 'message': 'ایمیل معتبر نیست یا از قبل ثبت شده است! لطفا دوباره تلاش کنید'
             }
@@ -155,24 +170,24 @@ class UserSettingAPIView(generics.RetrieveUpdateAPIView):
         else:
             serializer.save()
 
-        if new_email and original_email != new_email:
-            user.email = new_email
-            user.is_active = False  # Set user inactive until email is validated
+        if new_phone and original_phone != new_phone:
+            user.phone = new_phone
+            user.is_active = False  # Set user inactive until phone is validated
             user.save()
 
-            # Generate activation code and send email
-            host = request.META.get('HTTP_HOST')
-            scheme = 'https' if request.is_secure() else 'http'
-            subject = 'Account Registration'
-            template_name = 'email/activate_account.html'
-            send_activation_email(user, template_name, subject, host, scheme)
-
-            response_data = {
-                'message': 'ایمیل شما با موفقیت ثبت شده است اما حساب کاربری شما فعال نیست!'
-                           'لطفا صندوق ورودی خود را برای ایمیل تایید چک کنید',
-                **serializer.data  # Unpack serializer data into the dictionary
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
+            # # Generate activation code and send phone
+            # host = request.META.get('HTTP_HOST')
+            # scheme = 'https' if request.is_secure() else 'http'
+            # subject = 'Account Registration'
+            # template_name = 'email/activate_account.html'
+            # send_activation_email(user, template_name, subject, host, scheme)
+            #
+            # response_data = {
+            #     'message': 'ایمیل شما با موفقیت ثبت شده است اما حساب کاربری شما فعال نیست!'
+            #                'لطفا صندوق ورودی خود را برای ایمیل تایید چک کنید',
+            #     **serializer.data  # Unpack serializer data into the dictionary
+            # }
+            # return Response(response_data, status=status.HTTP_200_OK)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -261,57 +276,57 @@ class UserAddressUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class ForgotPasswordAPIView(APIView):
-    authentication_classes = []
-    permission_classes = []
+# class ForgotPasswordAPIView(APIView):
+#     authentication_classes = []
+#     permission_classes = []
+#
+#     def post(self, request):
+#         host = request.META.get('HTTP_HOST')
+#         scheme = 'https' if request.is_secure() else 'http'
+#         context = {
+#             'host': host,
+#             'scheme': scheme
+#         }
+#         serializer = ForgotPasswordLinkSerializer(data=request.data, context=context)  # Using the correct serializer
+#
+#         if serializer.is_valid():
+#             serializer.save()  # This calls the save method on the serializer, where the email is sent
+#
+#             # It's a good practice not to confirm whether an email exists in the database for security purposes.
+#             # You can return a generic message that doesn't indicate whether or not the email was found.
+#             return Response({
+#                 'message': 'ما یک ایمیل برای تغیر رمز عبور برای شما ارسال کردیم'
+#             }, status=status.HTTP_200_OK)
+#         else:
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def post(self, request):
-        host = request.META.get('HTTP_HOST')
-        scheme = 'https' if request.is_secure() else 'http'
-        context = {
-            'host': host,
-            'scheme': scheme
-        }
-        serializer = ForgotPasswordLinkSerializer(data=request.data, context=context)  # Using the correct serializer
 
-        if serializer.is_valid():
-            serializer.save()  # This calls the save method on the serializer, where the email is sent
-
-            # It's a good practice not to confirm whether an email exists in the database for security purposes.
-            # You can return a generic message that doesn't indicate whether or not the email was found.
-            return Response({
-                'message': 'ما یک ایمیل برای تغیر رمز عبور برای شما ارسال کردیم'
-            }, status=status.HTTP_200_OK)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class ResetPasswordView(View):
-    authentication_classes = []
-    permission_classes = []
-
-    def get(self, request, active_code):
-
-        return render(request, 'account_module/reset_password.html', {'active_code': active_code})
-
-    def post(self, request, active_code):
-        new_password = request.POST.get('new-password')
-
-        try:
-            # Retrieve the user object
-            user = User.objects.get(email_active_code=active_code)
-
-            # make hashing for set to data base and Set the new password
-
-            user.set_password(new_password)
-            user.save()
-
-            # Optionally, log in the user automatically after password reset
-            # auth.login(request, user)
-
-            return HttpResponse("رمز با موفقیت تغیر کرد")
-        except User.DoesNotExist:
-            return HttpResponse("کاربر وجود ندارد")
+# class ResetPasswordView(View):
+#     authentication_classes = []
+#     permission_classes = []
+#
+#     def get(self, request, active_code):
+#
+#         return render(request, 'account_module/reset_password.html', {'active_code': active_code})
+#
+#     def post(self, request, active_code):
+#         new_password = request.POST.get('new-password')
+#
+#         try:
+#             # Retrieve the user object
+#             user = User.objects.get(email_active_code=active_code)
+#
+#             # make hashing for set to data base and Set the new password
+#
+#             user.set_password(new_password)
+#             user.save()
+#
+#             # Optionally, log in the user automatically after password reset
+#             # auth.login(request, user)
+#
+#             return HttpResponse("رمز با موفقیت تغیر کرد")
+#         except User.DoesNotExist:
+#             return HttpResponse("کاربر وجود ندارد")
 
 
 class DiscountCodeAPIView(generics.RetrieveAPIView):
@@ -390,3 +405,21 @@ class CityListView(APIView):
         cities = City.objects.all()
         serializer = self.serializer_class(cities, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class SearchUserAPIView(APIView):
+    serializer_class = UserPublicInfoSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        phone = request.data.get('phone', None)
+        if not phone:
+            return Response({'error': 'Phone is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            users = User.objects.get(phone=phone)
+        except User.DoesNotExist:
+            return Response({'message': 'User with this phone not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        user_data = UserPublicInfoSerializer(users).data
+
+        return Response(user_data, status=status.HTTP_200_OK)

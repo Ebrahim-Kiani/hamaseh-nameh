@@ -9,82 +9,71 @@ from rest_framework.exceptions import ValidationError
 
 class MyUserManager(BaseUserManager):
 
-    def create_user(self, email, full_name, password=None):
-
-        if not email:
-            raise ValueError('Users must have an email address')
-
+    def create_user(self, phone, full_name, password=None, **extra_fields):
+        """
+        Create and return a regular user with the given phone, full_name, and password.
+        """
+        if not phone:
+            raise ValueError("The phone number must be set")
         if not full_name:
-            raise ValueError('Users must have a full name')
+            raise ValueError("The full name must be set")
 
-        user = self.model(
-
-            email=self.normalize_email(email),
-
-            full_name=full_name,
-
-        )
-
+        extra_fields.setdefault('is_active', True)  # Default to active users
+        user = self.model(phone=phone, full_name=full_name, **extra_fields)
         user.set_password(password)
-
         user.save(using=self._db)
-
         return user
 
-    def create_superuser(self, email, full_name, password=None):
+    def create_superuser(self, phone, full_name, password=None, **extra_fields):
+        """
+        Create and return a superuser with the given phone, full_name, and password.
+        """
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
 
-        user = self.create_user(
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
 
-            email=self.normalize_email(email),
+        return self.create_user(phone=phone, full_name=full_name, password=password, **extra_fields)
 
-            password=password,
-
-            full_name=full_name,
-
-        )
-        user.is_active = True
-        user.is_staff = True
-        user.is_superuser = True
-        user.save(using=self._db)
-
-        return user
-
-    def get_by_natural_key(self, email):
-        return self.get(**{self.model.USERNAME_FIELD: email})
+    def get_by_natural_key(self, phone):
+        return self.get(**{self.model.USERNAME_FIELD: phone})
 
 
 class User(AbstractBaseUser, PermissionsMixin):
     objects = MyUserManager()
-    email = models.EmailField(unique=True, null=False, blank=False, verbose_name='user email')
-    email_active_code = models.CharField(max_length=100, verbose_name='email active code', blank=True, null=True)
+    phone = models.CharField(max_length=13, unique=True, null=False, blank=False, verbose_name='user phone')
+    #email_active_code = models.CharField(max_length=100, verbose_name='email active code', blank=True, null=True)
     activation_code_expiration = models.DateTimeField(null=True, blank=True)
     full_name = models.CharField(max_length=150, null=False, blank=False, verbose_name='full name')
-    is_active = models.BooleanField(default=False, verbose_name='is user active?')
+    is_active = models.BooleanField(default=True, verbose_name='is user active?')
     is_staff = models.BooleanField(default=False, verbose_name='is user staff?')
     avatar = models.ImageField(upload_to='images/profile_images', verbose_name='profile avatar', null=True, blank=True)
-    phone_number = models.CharField(max_length=13, null=True, blank=True)
-    USERNAME_FIELD = 'email'
+
+    USERNAME_FIELD = 'phone'
     REQUIRED_FIELDS = ['full_name']
 
     class Meta:
         verbose_name = 'User table'
 
-    def save(self, *args, **kwargs):
-        self.email = self.email.lower()  # Convert email to lowercase
-        super().save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     self.email = self.email.lower()  # Convert email to lowercase
+    #     super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = 'Uesr'
         verbose_name_plural = 'Users'
 
     def __str__(self):
-        return self.email
+        return self.phone
 
     def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exists():
-            raise ValidationError("This email address is already in use.")
-        return email
+        phone = self.cleaned_data.get('phone')
+        if User.objects.filter(phone=phone).exists():
+            raise ValidationError("کاربر با این شماره وجود دارد!")
+        return phone
 
 class DiscountCode(models.Model):
     code = models.CharField(max_length=5, unique=True, blank=True, null=True)

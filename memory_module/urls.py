@@ -8,11 +8,13 @@ memory_user_router.register('pictures', views.memoryPicturesAPIView, basename='m
 
 
 urlpatterns = [
+    path('counties/', views.CountyListAPIView.as_view(), name='county-list'),
     path('user/', include(memory_user_router.urls)),
     path('user/', include(memory_user_router.urls)),
     path('list/', views.memoryListAPIView.as_view(), name='memory-list'),
     path('detail/<int:pk>', views.memoryRetrieveAPIView.as_view(), name='memory-detail'),
     path('comment/create/', views.memoryCommentsCreateAPIView.as_view(), name='memory-comments-create'),
-    path('comment/edit/<int:pk>', views.memoryCommentsEditAPIView.as_view(), name='memory-comments-edit')
+    path('comment/edit/<int:pk>', views.memoryCommentsEditAPIView.as_view(), name='memory-comments-edit'),
+    path('rating/', views.RatingCreateAPIView.as_view(), name='memory-rating-create')
 
 ]

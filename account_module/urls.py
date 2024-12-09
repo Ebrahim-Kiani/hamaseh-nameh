@@ -6,9 +6,9 @@ from rest_framework_simplejwt.views import TokenRefreshView
 urlpatterns = [
 
     path('register/', views.RegisterAPIView.as_view(), name='register-url'),
-    path('account/activator/<active_code>', views.ActivateAccountAPIView.as_view(), name='account-activator-url'),
-    path('forgotpassword/', views.ForgotPasswordAPIView.as_view(), name='forgot-password-url'),
-    path('resetpassword/<active_code>', views.ResetPasswordView.as_view(), name='account-reset-password'),
+    #path('account/activator/<active_code>', views.ActivateAccountAPIView.as_view(), name='account-activator-url'),
+    #path('forgotpassword/', views.ForgotPasswordAPIView.as_view(), name='forgot-password-url'),
+    #path('resetpassword/<active_code>', views.ResetPasswordView.as_view(), name='account-reset-password'),
     path('login/', views.LoginAPIView.as_view(), name='login-url'),
     path('login/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path('logout/', views.LogoutAPIView.as_view(), name='logout'),
@@ -21,5 +21,7 @@ urlpatterns = [
     # Address
     path('provinces/', views.ProvinceListView.as_view(), name='province_list'),
     path('cities/', views.CityListView.as_view(), name='city_list'),
+
+    path('search/', views.SearchUserAPIView.as_view(), name='search-users'),
 
 ]

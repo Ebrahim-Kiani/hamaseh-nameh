@@ -4,9 +4,9 @@ from django.contrib.auth import get_user_model
 UserModel = get_user_model()
 
 class CustomAuthBackend(ModelBackend):
-    def authenticate(self, request, email=None, password=None, **kwargs):
+    def authenticate(self, request, phone=None, password=None, **kwargs):
         try:
-            user = UserModel.objects.get(email=email)
+            user = UserModel.objects.get(phone=phone)
             if user.check_password(password):
                 return user
         except UserModel.DoesNotExist:

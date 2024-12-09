@@ -19,15 +19,15 @@ class UserSerialaizer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['password', 'full_name', 'email']
+        fields = ['password', 'full_name', 'phone']
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.CharField(required=True)
+    phone = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True, required=True)
 
     def validate(self, data):
-        user = authenticate(email=data.get('email'), password=data.get('password'))
+        user = authenticate(phone=data.get('phone'), password=data.get('password'))
 
         if user is not None:
             if not user.is_active:
@@ -41,11 +41,11 @@ class LoginSerializer(serializers.Serializer):
                     'We sent new link for you.')
             else:
                 return user
-        raise serializers.ValidationError('Invalid credentials')
+        raise serializers.ValidationError('شماره تلفن یا رمزعبور صحیح نیست!')
 
     class Meta:
         model = User
-        fields = ['password', 'email']
+        fields = ['password', 'phone']
 
 
 class UserSettingSerializer(serializers.ModelSerializer):
@@ -60,7 +60,7 @@ class UserSettingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['avatar', 'full_name', 'phone_number', 'email']
+        fields = ['avatar', 'full_name', 'phone']
 
 
 class UserAddressSerializer(serializers.ModelSerializer):
@@ -88,32 +88,32 @@ class UserAddressSerializer(serializers.ModelSerializer):
         fields = ('id', 'user', 'province_name', 'city_name')
 
 
-class ForgotPasswordLinkSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(required=True)
-
-    def validate_email(self, value):
-        # Validation to check if the user with the given email exists
-        try:
-            user = User.objects.get(email=value)
-            self.context['user'] = user
-        except User.DoesNotExist:
-            raise serializers.ValidationError('A user with this email does not exist.')
-        return value
-
-    def save(self):
-        user = self.context['user']
-        host = self.context['host']
-        scheme = self.context['scheme']
-        subject = 'Account Forgot Password'
-        template_name = 'email/forgot_password.html'
-        # The `save` method is where you should invoke the email sending
-        send_activation_email(user, template_name, subject, host, scheme)
-        # You should not raise a ValidationError here unless there is an actual error.
-        return user
-
-    class Meta:
-        model = User
-        fields = ['email']
+# class ForgotPasswordLinkSerializer(serializers.ModelSerializer):
+#     email = serializers.EmailField(required=True)
+#
+#     def validate_email(self, value):
+#         # Validation to check if the user with the given email exists
+#         try:
+#             user = User.objects.get(email=value)
+#             self.context['user'] = user
+#         except User.DoesNotExist:
+#             raise serializers.ValidationError('A user with this email does not exist.')
+#         return value
+#
+#     def save(self):
+#         user = self.context['user']
+#         host = self.context['host']
+#         scheme = self.context['scheme']
+#         subject = 'Account Forgot Password'
+#         template_name = 'email/forgot_password.html'
+#         # The `save` method is where you should invoke the email sending
+#         send_activation_email(user, template_name, subject, host, scheme)
+#         # You should not raise a ValidationError here unless there is an actual error.
+#         return user
+#
+#     class Meta:
+#         model = User
+#         fields = ['email']
 
 
 class DiscountCodeSerializer(serializers.ModelSerializer):
@@ -123,15 +123,15 @@ class DiscountCodeSerializer(serializers.ModelSerializer):
 
 
 class UserDeleteAccountSerializer(serializers.ModelSerializer):
-    email = serializers.CharField(required=True)
+    phone = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ['password', 'email']
+        fields = ['password', 'phone']
 
     def validate(self, data):
-        user = authenticate(email=data.get('email'), password=data.get('password'))
+        user = authenticate(phone=data.get('phone'), password=data.get('password'))
 
         if not user:
             raise serializers.ValidationError('Invalid credentials')
@@ -149,3 +149,8 @@ class CitySerializer(serializers.ModelSerializer):
     class Meta:
         model = City
         fields = '__all__'
+
+class UserPublicInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['avatar', 'full_name', 'phone']

@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import Avg
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
+from django.conf import settings
 from category_module.models import SubCategory
 from account_module.models import User
 
@@ -100,3 +100,15 @@ class memory_comments(models.Model):
 
     def __str__(self):
         return f'{self.title}, user:{self.user}, memory:{self.memory}'
+
+
+class Bookmark(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bookmarks')
+    memory = models.ForeignKey('memory', on_delete=models.CASCADE, related_name='bookmarked_by')
+
+
+    class Meta:
+        unique_together = ('user', 'memory')  # Prevent duplicate bookmarks
+
+    def __str__(self):
+        return f"{self.user} bookmarked {self.memory}"

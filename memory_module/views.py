@@ -1,11 +1,12 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, generics, filters, permissions, status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
-from .models import memory, memory_pictures, memory_comments, Rating
+from .models import memory, memory_pictures, memory_comments, Rating, Bookmark
 from .seryalizers import memorySerializer, memory_picturesSerializer, memorylistSerializer, memory_commentsSerializer, \
-    RatingSerializer
+    RatingSerializer, BookmarkSerializer
 from rest_framework.response import Response
 from .models import Avg
 
@@ -205,3 +206,72 @@ class CountyListAPIView(APIView):
             "نطنز"
         ]
         return Response(counties)
+
+class BookmarkListCreateAPIView(generics.ListCreateAPIView):
+    serializer_class = BookmarkSerializer
+    permission_classes = [IsAuthenticated]  # Ensure user is authenticated
+
+    def get_queryset(self):
+        """Get all bookmarks for the logged-in user."""
+        return Bookmark.objects.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        """Bookmark a memory."""
+        memory_id = request.data.get('memory')  # Expect memory_id in the request body
+
+        try:
+            memory_instance = memory.objects.get(id=memory_id)  # Ensure the memory exists
+
+            # Create or get the bookmark for the user
+            bookmark, created = Bookmark.objects.get_or_create(user=request.user, memory=memory_instance)
+            if created:
+                return Response({"message": "خاطره مورد نظر با موفقیت ذخیره شد"}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"message": "خاطره مورد نظر از قبل ذخیره شده بود"}, status=status.HTTP_200_OK)
+        except memory.DoesNotExist:
+            return Response({"error": "خاطره مورد نظر پیدا نشد"}, status=status.HTTP_404_NOT_FOUND)
+
+class BookMarkDestroyAPIView(generics.DestroyAPIView):
+    BookmarkSerializer = BookmarkSerializer
+    permission_classes = [IsAuthenticated]
+    def destroy(self, request, pk=None):
+        """Remove a bookmark"""
+        try:
+            bookmark = Bookmark.objects.get(memory=pk, user=request.user)
+            bookmark.delete()
+            return Response({"message": "خاطره مورد نظر با موفقیت حذف شد"}, status=status.HTTP_204_NO_CONTENT)
+        except Bookmark.DoesNotExist:
+            return Response({"error": "خاطره مورد نظر یافت نشد"}, status=status.HTTP_404_NOT_FOUND)
+
+
+# class BookmarkViewSet(viewsets.ViewSet):
+#     permission_classes = [IsAuthenticated]
+#
+#     def list(self, request):
+#         """Get all bookmarks for the logged-in user"""
+#         bookmarks = Bookmark.objects.filter(user=request.user)
+#         serializer = BookmarkSerializer(bookmarks, many=True)
+#         return Response(serializer.data)
+#
+#     def create(self, request):
+#         """Bookmark a memory"""
+#         memory_id = request.data.get('memory_id')
+#         try:
+#             memory_instance = memory.objects.get(id=memory_id)
+#             bookmark, created = Bookmark.objects.get_or_create(user=request.user, memory=memory_instance)
+#             if created:
+#                 return Response({"message": "Memory bookmarked successfully."}, status=status.HTTP_201_CREATED)
+#             else:
+#                 return Response({"message": "Memory is already bookmarked."}, status=status.HTTP_200_OK)
+#         except memory.DoesNotExist:
+#             return Response({"error": "Memory not found."}, status=status.HTTP_404_NOT_FOUND)
+#
+#     def destroy(self, request, pk=None):
+#         """Remove a bookmark"""
+#         try:
+#             bookmark = Bookmark.objects.get(id=pk, user=request.user)
+#             bookmark.delete()
+#             return Response({"message": "Bookmark removed successfully."}, status=status.HTTP_204_NO_CONTENT)
+#         except Bookmark.DoesNotExist:
+#             return Response({"error": "Bookmark not found."}, status=status.HTTP_404_NOT_FOUND)
+

@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-=3&cyhfy6#0(7n%$$v0kei*92c-9a3$kw^*%@t3li$^b#0zfjc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", ""]
+ALLOWED_HOSTS = ["localhost", "https://hamasehnameh.liara.run/"]
 
 
 # Application definition
@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'account_module',
     'category_module',
     'memory_module',
+    'slide_module',
     # external apps
     'rest_framework',
     'rest_framework_simplejwt',
@@ -138,8 +139,10 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'account_module.User'
 
+
 # Settings for DRF
 REST_FRAMEWORK = {
+
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],

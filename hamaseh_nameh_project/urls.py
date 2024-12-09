@@ -29,5 +29,6 @@ urlpatterns = [
     path('users/', include('account_module.urls')),
     path('categories/', include('category_module.urls')),
     path('memories/', include('memory_module.urls')),
+    path('slides/', include('slide_module.urls')),
 
     ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

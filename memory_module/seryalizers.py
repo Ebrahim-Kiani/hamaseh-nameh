@@ -78,7 +78,7 @@ class memorylistSerializer(serializers.ModelSerializer):
         model = memory
         fields = [
             'id', 'title', 'Sub_category_title', 'user_full_name', 'user_phone', 'user_addresses_city',
-            'user_avatar_url', 'main_picture', 'main_picture_url', 'pictures', 'comments', 'average_rating'
+            'user_avatar_url', 'main_picture', 'main_picture_url', 'pictures', 'comments', 'average_rating','county'
         ]
 
     def get_user_full_name(self, obj):

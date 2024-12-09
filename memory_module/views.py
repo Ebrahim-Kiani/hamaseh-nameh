@@ -10,6 +10,17 @@ from .seryalizers import memorySerializer, memory_picturesSerializer, memorylist
 from rest_framework.response import Response
 from .models import Avg
 
+
+from rest_framework.pagination import PageNumberPagination
+
+class MemoryListPagination(PageNumberPagination):
+    page_size = 10
+
+
+
+
+
+
 class IsOwnerOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if view.action in ['retrieve', 'update', 'partial_update', 'destroy']:
@@ -35,6 +46,7 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 # Reverse all memories from a user(GET,DELETE,POST(post new object),PUT(update an object))
 # Notice : pictures of a memory is readonly filed.
 class memoryUserAPIView(viewsets.ModelViewSet):
+    pagination_class = MemoryListPagination
     serializer_class = memorySerializer
     permission_classes = [IsOwnerOrReadOnly]
 
@@ -75,11 +87,12 @@ class memoryPicturesAPIView(viewsets.ModelViewSet):
 
 # Return filters of city or categories for user and Return search of memories for user
 class memoryListAPIView(generics.ListAPIView):
+    pagination_class = MemoryListPagination  # Ensure this is correctly defined
     serializer_class = memorylistSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['SubCategory__title', 'SubCategory__MainCategory__title', 'user__addresses__city']
+    filterset_fields = ['SubCategory__title', 'SubCategory__MainCategory__title', 'user__addresses__city', 'county']
     search_fields = [
-        'title', 'user__full_name', 'SubCategory__title', 'SubCategory__MainCategory__title']
+        'title', 'user__full_name', 'SubCategory__title', 'SubCategory__MainCategory__title', 'county']
     queryset = memory.objects.all()
 
     def get_queryset(self):
@@ -88,15 +101,27 @@ class memoryListAPIView(generics.ListAPIView):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
+
+        # Paginate the queryset
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            data = serializer.data
+
+            # Remove unwanted fields
+            for item in data:
+                item.pop('pictures', None)
+                item.pop('comments', None)
+
+            # Use paginated response
+            return self.get_paginated_response(data)
+
+        # If no pagination, use default behavior
         serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
-
         for item in data:
-            if 'pictures' in item:
-                item.pop('pictures')
-        for item in data:
-            if 'comments' in item:
-                item.pop('comments')
+            item.pop('pictures', None)
+            item.pop('comments', None)
 
         return Response(data)
 
@@ -210,8 +235,22 @@ class CountyListAPIView(APIView):
 class BookmarkListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = BookmarkSerializer
     permission_classes = [IsAuthenticated]  # Ensure user is authenticated
+    pagination_class = MemoryListPagination
+    def list(self, request, *args, **kwargs):
+        """Override list to include pagination."""
+        queryset = self.filter_queryset(self.get_queryset())
 
+        # Paginate the queryset
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        # If no pagination, use default behavior
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
     def get_queryset(self):
+
         """Get all bookmarks for the logged-in user."""
         return Bookmark.objects.filter(user=self.request.user)
 

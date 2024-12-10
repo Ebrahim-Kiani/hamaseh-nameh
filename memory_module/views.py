@@ -1,6 +1,7 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, generics, filters, permissions, status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -283,34 +284,9 @@ class BookMarkDestroyAPIView(generics.DestroyAPIView):
             return Response({"error": "خاطره مورد نظر یافت نشد"}, status=status.HTTP_404_NOT_FOUND)
 
 
-# class BookmarkViewSet(viewsets.ViewSet):
-#     permission_classes = [IsAuthenticated]
-#
-#     def list(self, request):
-#         """Get all bookmarks for the logged-in user"""
-#         bookmarks = Bookmark.objects.filter(user=request.user)
-#         serializer = BookmarkSerializer(bookmarks, many=True)
-#         return Response(serializer.data)
-#
-#     def create(self, request):
-#         """Bookmark a memory"""
-#         memory_id = request.data.get('memory_id')
-#         try:
-#             memory_instance = memory.objects.get(id=memory_id)
-#             bookmark, created = Bookmark.objects.get_or_create(user=request.user, memory=memory_instance)
-#             if created:
-#                 return Response({"message": "Memory bookmarked successfully."}, status=status.HTTP_201_CREATED)
-#             else:
-#                 return Response({"message": "Memory is already bookmarked."}, status=status.HTTP_200_OK)
-#         except memory.DoesNotExist:
-#             return Response({"error": "Memory not found."}, status=status.HTTP_404_NOT_FOUND)
-#
-#     def destroy(self, request, pk=None):
-#         """Remove a bookmark"""
-#         try:
-#             bookmark = Bookmark.objects.get(id=pk, user=request.user)
-#             bookmark.delete()
-#             return Response({"message": "Bookmark removed successfully."}, status=status.HTTP_204_NO_CONTENT)
-#         except Bookmark.DoesNotExist:
-#             return Response({"error": "Bookmark not found."}, status=status.HTTP_404_NOT_FOUND)
+class TopRatedMemoriesAPIView(ListAPIView):
+    serializer_class = memorylistSerializer
 
+    def get_queryset(self):
+        # Filter memories with status=True, order by rating descending, and limit to 10
+        return memory.objects.filter(status=True).order_by('-average_rating')[:10]

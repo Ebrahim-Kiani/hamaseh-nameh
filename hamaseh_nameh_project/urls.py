@@ -30,5 +30,6 @@ urlpatterns = [
     path('categories/', include('category_module.urls')),
     path('memories/', include('memory_module.urls')),
     path('slides/', include('slide_module.urls')),
+    path('videos/', include('media_module.urls'))
 
     ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

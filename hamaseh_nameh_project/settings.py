@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'category_module',
     'memory_module',
     'slide_module',
+    'media_module',
     # external apps
     'rest_framework',
     'rest_framework_simplejwt',

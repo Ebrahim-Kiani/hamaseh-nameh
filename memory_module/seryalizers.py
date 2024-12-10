@@ -20,6 +20,8 @@ class memory_commentsSerializer(serializers.ModelSerializer):
         return obj.user.phone
 
 
+
+
 class memory_picturesSerializer(serializers.ModelSerializer):
     class Meta:
         model = memory_pictures
@@ -38,6 +40,7 @@ class memorySerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'SubCategory', 'Sub_category_title', 'user', 'main_picture', 'main_picture_url',
                   'pictures', 'description', 'comments', 'status', 'county']
         read_only_fields = ['status']  # Mark 'status' as read-only
+
 
     def update(self, instance, validated_data):
         validated_data.pop('description', None)
@@ -73,14 +76,21 @@ class memorylistSerializer(serializers.ModelSerializer):
     user_avatar_url = serializers.SerializerMethodField()
     main_picture_url = serializers.SerializerMethodField()
     user_addresses_city = serializers.SerializerMethodField()
+    is_bookmarked = serializers.SerializerMethodField()  # New field to check if bookmarked
 
     class Meta:
         model = memory
         fields = [
             'id', 'title', 'Sub_category_title', 'user_full_name', 'user_phone', 'user_addresses_city',
             'user_avatar_url', 'main_picture', 'main_picture_url', 'pictures', 'comments', 'average_rating','county'
+            , 'is_bookmarked'
         ]
-
+    def get_is_bookmarked(self, obj):
+        # Check if the memory is bookmarked by the current user
+        user = self.context['request'].user
+        if not user.is_authenticated:
+            return False  # If the user is not logged in, return False
+        return Bookmark.objects.filter(user=user, memory=obj).exists()
     def get_user_full_name(self, obj):
         return obj.user.full_name
 
@@ -164,3 +174,14 @@ class BookmarkSerializer(serializers.ModelSerializer):
             if request is not None:
                 return request.build_absolute_uri(obj.memory.main_picture.image.url)
         return None
+
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+class TopTenUsersSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'full_name', 'Rating'
+        ]
+

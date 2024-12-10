@@ -52,6 +52,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False, verbose_name='is user staff?')
     avatar = models.ImageField(upload_to='images/profile_images', verbose_name='profile avatar', null=True, blank=True)
 
+    Rating = models.FloatField(default=0.0)  # Field to store the user's rating
     USERNAME_FIELD = 'phone'
     REQUIRED_FIELDS = ['full_name']
 

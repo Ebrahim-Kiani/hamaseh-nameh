@@ -5,22 +5,18 @@ from rest_framework.exceptions import PermissionDenied, NotFound
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-
+from django.contrib.auth import get_user_model
 from .models import memory, memory_pictures, memory_comments, Rating, Bookmark
 from .seryalizers import memorySerializer, memory_picturesSerializer, memorylistSerializer, memory_commentsSerializer, \
-    RatingSerializer, BookmarkSerializer
+    RatingSerializer, BookmarkSerializer, TopTenUsersSerializers
 from rest_framework.response import Response
 from .models import Avg
 
-
 from rest_framework.pagination import PageNumberPagination
+
 
 class MemoryListPagination(PageNumberPagination):
     page_size = 10
-
-
-
-
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
@@ -162,45 +158,36 @@ class memoryCommentsEditAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = memory_comments.objects.all()
     permission_classes = [IsCommentOwner]
 
+
 class RatingCreateAPIView(generics.CreateAPIView):
-        serializer_class = RatingSerializer
-        permission_classes = [permissions.IsAuthenticated]
+    serializer_class = RatingSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-        def create(self, request, *args, **kwargs):
-            user = request.user
-            memory_id = request.data.get('memory')
-            value = request.data.get('value')
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        memory_id = request.data.get('memory')
+        value = request.data.get('value')
 
-            # Check if the rating already exists
-            rating, created = Rating.objects.update_or_create(
-                memory_id=memory_id,
-                user=user,
-                defaults={'value': value}
-            )
+        # Check if the rating already exists
+        rating, created = Rating.objects.update_or_create(
+            memory_id=memory_id,
+            user=user,
+            defaults={'value': value}
+        )
 
-            if created:
-                status_code = status.HTTP_201_CREATED  # New rating created
-            else:
-                status_code = status.HTTP_200_OK  # Existing rating updated
+        if created:
+            status_code = status.HTTP_201_CREATED  # New rating created
+        else:
+            status_code = status.HTTP_200_OK  # Existing rating updated
 
-            serializer = self.get_serializer(rating)
-            return Response(serializer.data, status=status_code)
+        # Call the UserPointsAPIView logic to recalculate and update the user's rating
+        user_points_view = UserPointsAPIView()
+        user = memory.objects.get(id=memory_id).user
+        user_points_view.calculate_user_rating(user)
 
-    # def create(self, request, *args, **kwargs):
-    #     data = request.data.copy()
-    #     data['user'] = request.user.id  # Automatically set the user
-    #
-    #     serializer = self.get_serializer(data=data)
-    #     serializer.is_valid(raise_exception=True)
-    #     self.perform_create(serializer)
-    #
-    #     # After saving the rating, update the average rating for the memory
-    #     memory = serializer.instance.memory
-    #     memory.average_rating = memory.ratings.aggregate(Avg('value'))['value__avg']
-    #     memory.save()
-    #
-    #
-    #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+        serializer = self.get_serializer(rating)
+        return Response(serializer.data, status=status_code)
+
 
 class CountyListAPIView(APIView):
     def get(self, request, *args, **kwargs):
@@ -234,10 +221,12 @@ class CountyListAPIView(APIView):
         ]
         return Response(counties)
 
+
 class BookmarkListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = BookmarkSerializer
     permission_classes = [IsAuthenticated]  # Ensure user is authenticated
     pagination_class = MemoryListPagination
+
     def list(self, request, *args, **kwargs):
         """Override list to include pagination."""
         queryset = self.filter_queryset(self.get_queryset())
@@ -251,6 +240,7 @@ class BookmarkListCreateAPIView(generics.ListCreateAPIView):
         # If no pagination, use default behavior
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
     def get_queryset(self):
 
         """Get all bookmarks for the logged-in user."""
@@ -272,9 +262,11 @@ class BookmarkListCreateAPIView(generics.ListCreateAPIView):
         except memory.DoesNotExist:
             return Response({"error": "خاطره مورد نظر پیدا نشد"}, status=status.HTTP_404_NOT_FOUND)
 
+
 class BookMarkDestroyAPIView(generics.DestroyAPIView):
     BookmarkSerializer = BookmarkSerializer
     permission_classes = [IsAuthenticated]
+
     def destroy(self, request, pk=None):
         """Remove a bookmark"""
         try:
@@ -292,11 +284,14 @@ class TopRatedMemoriesAPIView(ListAPIView):
         # Filter memories with status=True, order by rating descending, and limit to 10
         return memory.objects.filter(status=True).order_by('-average_rating')[:10]
 
+
+User = get_user_model()
+
+
 class UserPointsAPIView(APIView):
-    def get(self, request, *args, **kwargs):
-        # Retrieve all memories associated with the given user ID
-        print(request.user)
-        user_memories = memory.objects.filter(user_id=request.user)
+    def calculate_user_rating(self, user):
+        """Helper method to calculate the total rating points for a user."""
+        user_memories = memory.objects.filter(user=user)
 
         if not user_memories.exists():
             raise NotFound(detail="No memories found for the specified user.")
@@ -304,5 +299,21 @@ class UserPointsAPIView(APIView):
         # Calculate the sum of average_rating for all memories
         total_points = user_memories.aggregate(total_points=Sum('average_rating'))['total_points'] or 0.0
 
-        # Return the total points
+        # Update the user's rating
+        user.Rating = total_points
+        user.save()
+
+        return total_points
+
+    def get(self, request, *args, **kwargs):
+        # Call the helper function to calculate the rating
+        total_points = self.calculate_user_rating(request.user)
+
         return Response({"total_points": total_points})
+
+class TopTenUserPointsAPIView(ListAPIView):
+    serializer_class = TopTenUsersSerializers
+
+    def get_queryset(self):
+        # Filter memories with status=True, order by rating descending, and limit to 10
+        return User.objects.filter(is_active=True).order_by('-Rating')[:10]

@@ -30,7 +30,7 @@ from .models import User  # Import your custom user model
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     # Fields to display in the admin
-    list_display = ('phone', 'is_active', 'is_staff')
+    list_display = ('phone', 'is_active', 'is_staff', 'Rating')
     search_fields = ('phone',)
 
     # Fields shown when editing a user

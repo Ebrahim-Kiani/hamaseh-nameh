@@ -159,6 +159,8 @@ class BookmarkSerializer(serializers.ModelSerializer):
         return None
 
     def get_main_picture_url(self, obj):
-        if obj.memory.main_picture:
-            return obj.memory.main_picture.url
+        if obj.memory.main_picture and obj.memory.main_picture.image:
+            request = self.context.get('request')
+            if request is not None:
+                return request.build_absolute_uri(obj.memory.main_picture.image.url)
         return None

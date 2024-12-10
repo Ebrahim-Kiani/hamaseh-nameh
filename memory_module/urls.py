@@ -27,5 +27,7 @@ urlpatterns = [
     path('bookmarks/', views.BookmarkListCreateAPIView.as_view(), name='bookmark-list'),
     path('bookmarks/delete/<int:pk>/', views.BookMarkDestroyAPIView.as_view(), name='bookmark-delete'),
 
+    path('budget/', views.UserPointsAPIView.as_view())
+
 
 ]

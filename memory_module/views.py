@@ -1,6 +1,7 @@
+from django.db.models import Sum
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, generics, filters, permissions, status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, NotFound
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -290,3 +291,18 @@ class TopRatedMemoriesAPIView(ListAPIView):
     def get_queryset(self):
         # Filter memories with status=True, order by rating descending, and limit to 10
         return memory.objects.filter(status=True).order_by('-average_rating')[:10]
+
+class UserPointsAPIView(APIView):
+    def get(self, request, *args, **kwargs):
+        # Retrieve all memories associated with the given user ID
+        print(request.user)
+        user_memories = memory.objects.filter(user_id=request.user)
+
+        if not user_memories.exists():
+            raise NotFound(detail="No memories found for the specified user.")
+
+        # Calculate the sum of average_rating for all memories
+        total_points = user_memories.aggregate(total_points=Sum('average_rating'))['total_points'] or 0.0
+
+        # Return the total points
+        return Response({"total_points": total_points})

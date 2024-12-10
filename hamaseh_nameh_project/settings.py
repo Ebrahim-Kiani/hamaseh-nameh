@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'memory_module',
     'slide_module',
     'media_module',
+    'contact_module',
     # external apps
     'rest_framework',
     'rest_framework_simplejwt',

@@ -133,7 +133,7 @@ class memoryRetrieveAPIView(generics.RetrieveAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         data = serializer.data
-
+        print(data)
         # Include the description field in the response
         data['description'] = instance.description
 

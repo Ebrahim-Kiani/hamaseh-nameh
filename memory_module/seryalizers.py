@@ -81,7 +81,7 @@ class memorylistSerializer(serializers.ModelSerializer):
     class Meta:
         model = memory
         fields = [
-            'id', 'title', 'Sub_category_title', 'user_full_name', 'user_phone', 'user_addresses_city',
+            'id', 'title', 'description','Sub_category_title', 'user_full_name', 'user_phone', 'user_addresses_city',
             'user_avatar_url', 'main_picture', 'main_picture_url', 'pictures', 'comments', 'average_rating','county'
             , 'is_bookmarked'
         ]

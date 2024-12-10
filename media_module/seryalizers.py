@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import video
+from .models import video, VideoCategory
 
 
 class VideosSerializer(serializers.ModelSerializer):
@@ -10,5 +10,5 @@ class VideosSerializer(serializers.ModelSerializer):
 
 class VideoCategorySerializer(serializers.ModelSerializer):
     class Meta:
-        model = video
+        model = VideoCategory
         fields = '__all__'

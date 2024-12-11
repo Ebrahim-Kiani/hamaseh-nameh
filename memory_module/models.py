@@ -48,7 +48,8 @@ class memory(models.Model):
     status = models.BooleanField(null=True, blank=True, default=None)
     average_rating = models.FloatField(default=0.0)
     county = models.CharField(max_length=20, choices=ISFAHAN_COUNTIES, null=False, blank=False, default="سراسر کشور")
-
+    # New field for voice data
+    voice = models.FileField(upload_to='voice_data/', null=True, blank=True)
 
     def save(self, *args, **kwargs):
         # Calculate the average rating before saving the object

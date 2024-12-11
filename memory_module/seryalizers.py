@@ -38,7 +38,7 @@ class memorySerializer(serializers.ModelSerializer):
     class Meta:
         model = memory
         fields = ['id', 'title', 'SubCategory', 'Sub_category_title', 'user', 'main_picture', 'main_picture_url',
-                  'pictures', 'description', 'comments', 'status', 'county']
+                  'pictures', 'description', 'comments', 'status', 'county', 'voice']
         read_only_fields = ['status']  # Mark 'status' as read-only
 
 
@@ -76,14 +76,21 @@ class memorylistSerializer(serializers.ModelSerializer):
     main_picture_url = serializers.SerializerMethodField()
     user_addresses_city = serializers.SerializerMethodField()
     is_bookmarked = serializers.SerializerMethodField()  # New field to check if bookmarked
-
+    voice = serializers.SerializerMethodField()
     class Meta:
         model = memory
         fields = [
             'id', 'title', 'Sub_category_title', 'user_full_name', 'user_phone', 'user_addresses_city',
             'user_avatar_url', 'main_picture', 'main_picture_url', 'pictures', 'comments', 'average_rating','county'
-            , 'is_bookmarked'
+            , 'is_bookmarked', 'voice'
         ]
+    def get_voice(self, obj):
+        if obj.voice:
+            request = self.context.get('request')
+            if request is not None:
+                return request.build_absolute_uri(obj.voice.url)
+        return None
+
     def get_is_bookmarked(self, obj):
         # Check if the memory is bookmarked by the current user
         user = self.context['request'].user

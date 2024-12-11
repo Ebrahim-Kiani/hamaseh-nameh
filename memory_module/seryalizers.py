@@ -43,7 +43,6 @@ class memorySerializer(serializers.ModelSerializer):
 
 
     def update(self, instance, validated_data):
-        validated_data.pop('description', None)
         return super().update(instance, validated_data)
 
     def get_main_picture_url(self, obj):
@@ -81,7 +80,7 @@ class memorylistSerializer(serializers.ModelSerializer):
     class Meta:
         model = memory
         fields = [
-            'id', 'title', 'description','Sub_category_title', 'user_full_name', 'user_phone', 'user_addresses_city',
+            'id', 'title', 'Sub_category_title', 'user_full_name', 'user_phone', 'user_addresses_city',
             'user_avatar_url', 'main_picture', 'main_picture_url', 'pictures', 'comments', 'average_rating','county'
             , 'is_bookmarked'
         ]

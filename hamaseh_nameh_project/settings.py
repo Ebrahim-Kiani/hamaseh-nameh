@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'slide_module',
     'media_module',
     'contact_module',
+    'horoscope_module',
     # external apps
     'rest_framework',
     'rest_framework_simplejwt',

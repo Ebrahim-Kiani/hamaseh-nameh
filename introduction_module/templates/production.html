@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دانلود نرم افزار 24 هزار</title>
+{#    <link rel="stylesheet" href="{% static 'css/styles.css' %}">#}
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to right, #9f9494, rgba(133, 129, 129, 0.66));
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            background-color: rgba(243, 37, 37, 0.89);
+            color: white;
+            padding: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+
+        .content {
+            padding: 20px;
+            line-height: 1.8;
+            font-size: 1.1rem;
+        }
+
+        .download-button {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .download-button a {
+            background: #ff2600;
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+
+        .download-button a:hover {
+            background: #d2704e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ software_name }}</h1>
+            <img src="{{ logo.url }}">
+        </div>
+        <div class="content" style="text-align: right; direction: rtl">
+            <p>
+                {{ software_description }}
+            </p>
+        </div>
+        <div class="download-button">
+            <a href="{{ apk_download_url }}" download>(apk)دانلود فایل نصب</a>
+        </div>
+    </div>
+</body>
+</html>

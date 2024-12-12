@@ -1,17 +1,17 @@
 from django.db.models import Sum
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, generics, filters, permissions, status
+from rest_framework import viewsets, generics, filters, permissions, status, serializers
 from rest_framework.exceptions import PermissionDenied, NotFound
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
 from .models import memory, memory_pictures, memory_comments, Rating, Bookmark
 from .seryalizers import memorySerializer, memory_picturesSerializer, memorylistSerializer, memory_commentsSerializer, \
-    RatingSerializer, BookmarkSerializer, TopTenUsersSerializers
+    RatingSerializer, BookmarkSerializer, TopTenUsersSerializers, MemoryVoiceSerializer
 from rest_framework.response import Response
 from .models import Avg
-
+from .models import memory
 from rest_framework.pagination import PageNumberPagination
 
 
@@ -81,6 +81,31 @@ class memoryPicturesAPIView(viewsets.ModelViewSet):
             serializer.save()
         else:
             raise PermissionDenied("You can only create memory_pictures for your own memories.")
+
+
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+
+
+# create voice for memories
+class MemoryVoiceAPIView(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request):
+        """
+        Upload or update the voice for a specific memory.
+        """
+        serializer = MemoryVoiceSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+
+        # Save the validated data
+        serializer.save()
+
+        return Response(
+            {"message": "Voice file uploaded successfully."},
+            status=status.HTTP_200_OK,
+        )
 
 
 # Return filters of city or categories for user and Return search of memories for user
@@ -294,16 +319,17 @@ class UserPointsAPIView(APIView):
         user_memories = memory.objects.filter(user=user)
 
         if not user_memories.exists():
-            raise NotFound(detail="No memories found for the specified user.")
+            total_points = 0.0
+        else:
 
-        # Calculate the sum of average_rating for all memories
-        total_points = user_memories.aggregate(total_points=Sum('average_rating'))['total_points'] or 0.0
+            # Calculate the sum of average_rating for all memories
+            total_points = user_memories.aggregate(total_points=Sum('average_rating'))['total_points'] or 0.0
 
-        # Update the user's rating
-        user.Rating = total_points
-        user.save()
+            # Update the user's rating
+            user.Content_Rating = (total_points * 2)
+            user.save()
 
-        return total_points
+        return user.Total_Rating
 
     def get(self, request, *args, **kwargs):
         # Call the helper function to calculate the rating
@@ -318,3 +344,75 @@ class TopTenUserPointsAPIView(ListAPIView):
     def get_queryset(self):
         # Filter memories with status=True, order by rating descending, and limit to 10
         return User.objects.filter(is_active=True).order_by('-Rating')[:10]
+
+
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+
+class UpdateUserRatingAPIView(APIView):
+    def post(self, request, *args, **kwargs):
+        try:
+            # Retrieve the current authenticated user
+            user = request.user
+            if not user.is_authenticated:
+                return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+            # Parse seconds from request data
+            seconds = request.data.get('seconds')
+
+            if seconds is None:
+                return Response({'error': 'seconds is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validate seconds
+            try:
+                seconds = float(seconds)
+                if seconds < 0:
+                    return Response({'error': 'Seconds must be a positive number'}, status=status.HTTP_400_BAD_REQUEST)
+                if seconds > 300:
+                    return Response({'error': 'Seconds must be less than 300 seconds'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+            except ValueError:
+                return Response({'error': 'Invalid seconds value'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update the user's average_rating
+            user.View_Rating += ((seconds * 25) / 300)
+            user.save()
+
+            return Response({'message': 'User rating updated successfully'},
+                            status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class GetUserGiftAPIView(APIView):
+    def get(self, request, *args, **kwargs):
+        user = User.objects.get(id=request.user.id)
+        user_total_rating = user.Total_Rating
+
+        if user_total_rating >= 500:
+            user.Total_Rating -=500
+            user.save()
+            return Response({'message': '''شما 500 پلاک در بازی سنوار دریافت کردید لطفا کد زیر را در بازی سنوار وارد کنید.''',
+                             'code':'sdgpw'},
+                            status=status.HTTP_200_OK)
+
+        elif user_total_rating >= 1000:
+            user.Total_Rating -=1000
+            user.save()
+            return Response({'message': '''شما 1100 پلاک در بازی سنوار دریافت کردید لطفا کد زیر را در بازی سنوار وارد کنید.''',
+                             'code':'gwerq'},
+                            status=status.HTTP_200_OK)
+
+        elif user_total_rating >= 1500:
+            user.Total_Rating -= 1500
+            user.save()
+            return Response({'message': '''شما 1700 پلاک در بازی سنوار دریافت کردید لطفا کد زیر را در بازی سنوار وارد کنید.''',
+                             'code':'jgert'},
+                            status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {'message': 'امتیاز شما برای دریافت جایزه کافی نیست'},
+                status=status.HTTP_200_OK)

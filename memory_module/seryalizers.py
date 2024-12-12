@@ -20,12 +20,51 @@ class memory_commentsSerializer(serializers.ModelSerializer):
         return obj.user.phone
 
 
-
-
 class memory_picturesSerializer(serializers.ModelSerializer):
     class Meta:
         model = memory_pictures
         fields = '__all__'
+
+
+class MemoryVoiceSerializer(serializers.ModelSerializer):
+    memory_id = serializers.IntegerField(write_only=True)  # Add memory_id for input
+
+    class Meta:
+        model = memory
+        fields = ['memory_id', 'voice']  # Include memory_id and voice fields
+
+    def validate_memory_id(self, value):
+        """
+        Validate that the memory_id belongs to the authenticated user.
+        """
+        user = self.context['request'].user
+        if not memory.objects.filter(id=value, user=user).exists():
+            raise serializers.ValidationError("Memory not found or you do not have permission to access it.")
+        return value
+
+    def validate_voice(self, value):
+        """
+        Validate voice file size and format.
+        """
+        if value.size > 20 * 1024 * 1024:  # 20 MB limit
+            raise serializers.ValidationError("Voice file size must be less than 20 MB.")
+        if not value.name.lower().endswith(('.mp3', '.wav', '.ogg')):
+            raise serializers.ValidationError("Invalid file format. Only .mp3, .wav, and .ogg are allowed.")
+        return value
+
+    def create(self, validated_data):
+        """
+        Assign voice data to the specified memory instance.
+        """
+        memory_id = validated_data.pop('memory_id')
+        print(memory_id)
+        memory_instance = memory.objects.get(id=memory_id)
+        memory_instance.voice = validated_data.get('voice')
+        memory_instance.save()
+        return memory_instance
+
+
+
 
 
 class memorySerializer(serializers.ModelSerializer):
@@ -40,7 +79,6 @@ class memorySerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'SubCategory', 'Sub_category_title', 'user', 'main_picture', 'main_picture_url',
                   'pictures', 'description', 'comments', 'status', 'county', 'voice']
         read_only_fields = ['status']  # Mark 'status' as read-only
-
 
     def update(self, instance, validated_data):
         return super().update(instance, validated_data)
@@ -77,13 +115,15 @@ class memorylistSerializer(serializers.ModelSerializer):
     user_addresses_city = serializers.SerializerMethodField()
     is_bookmarked = serializers.SerializerMethodField()  # New field to check if bookmarked
     voice = serializers.SerializerMethodField()
+
     class Meta:
         model = memory
         fields = [
             'id', 'title', 'Sub_category_title', 'user_full_name', 'user_phone', 'user_addresses_city',
-            'user_avatar_url', 'main_picture', 'main_picture_url', 'pictures', 'comments', 'average_rating','county'
+            'user_avatar_url', 'main_picture', 'main_picture_url', 'pictures', 'comments', 'average_rating', 'county'
             , 'is_bookmarked', 'voice'
         ]
+
     def get_voice(self, obj):
         if obj.voice:
             request = self.context.get('request')
@@ -97,13 +137,13 @@ class memorylistSerializer(serializers.ModelSerializer):
         if not user.is_authenticated:
             return False  # If the user is not logged in, return False
         return Bookmark.objects.filter(user=user, memory=obj).exists()
+
     def get_user_full_name(self, obj):
         return obj.user.full_name
 
     # def get_rating(self, obj):
     #     # Calculate the average rating dynamically
     #     return obj.ratings.aggregate(avg_rating=Avg('value'))['avg_rating'] or 0.0
-
 
     def get_user_phone(self, obj):
         return obj.user.phone
@@ -149,6 +189,7 @@ class RatingSerializer(serializers.ModelSerializer):
 
         return attrs
 
+
 class BookmarkSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='memory.id', read_only=True)
     title = serializers.CharField(source='memory.title', read_only=True)
@@ -181,13 +222,15 @@ class BookmarkSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.memory.main_picture.image.url)
         return None
 
+
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+
+
 class TopTenUsersSerializers(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
             'full_name', 'Rating'
         ]
-

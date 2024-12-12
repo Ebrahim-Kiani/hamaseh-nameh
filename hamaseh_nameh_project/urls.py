@@ -32,6 +32,7 @@ urlpatterns = [
     path('slides/', include('slide_module.urls')),
     path('videos/', include('media_module.urls')),
     path('contact/', include('contact_module.urls')),
-    path('horoscop/', include('horoscope_module.urls'))
+    path('horoscop/', include('horoscope_module.urls')),
+    path('introduction/', include('introduction_module.urls'))
 
     ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

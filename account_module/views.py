@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from .models import Address, DiscountCode, Province, City
 from .seryalizers import (UserSerialaizer, LoginSerializer, UserSettingSerializer, UserAddressSerializer
 , DiscountCodeSerializer, UserDeleteAccountSerializer, ProvinceSerializer, CitySerializer
-,UserPublicInfoSerializer)
+, UserPublicInfoSerializer)
 from rest_framework import generics, status, views
 from django.contrib.auth import get_user_model
 from account_module.utils.jwt_token_generator import get_token_for_user
@@ -38,7 +38,6 @@ def validate_phone_number(phone_number):
     return bool(re.match(pattern, phone_number))
 
 
-
 class RegisterAPIView(generics.CreateAPIView):
     authentication_classes = []
     permission_classes = []
@@ -62,7 +61,6 @@ class RegisterAPIView(generics.CreateAPIView):
         user = User.objects.filter(phone=phone).first()
         # Check if the phone already exists in the database
         if user is not None:
-
             response_data = {
                 'message': 'این شماره از قبل وارد شده است! لطفا یک شماره دیگر وارد کنید'
             }
@@ -127,9 +125,22 @@ class LoginAPIView(views.APIView):
         if serializer.is_valid():
             user = serializer.validated_data
 
+            # Check if it's the user's first login
+            first_login = user.First_login
+
+            if first_login:
+                user.First_login = False  # Set `First_login` to False
+
+                user.save()
+
+            # Generate token
             token = get_token_for_user(user)
 
-            return Response(token, status=status.HTTP_200_OK)
+            # Return response with `first_login` status
+            return Response({
+                "token": token,
+                "first_login": first_login
+            }, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -356,7 +367,8 @@ class LogoutAPIView(APIView):
 
             return Response({'message': 'شما با موفقیت خارج شدید!'}, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({'message': 'یک خطا هنگام خروج پیش آمد لطفا دوباره تلاش کنید'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'یک خطا هنگام خروج پیش آمد لطفا دوباره تلاش کنید'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
 class DeleteAccountView(APIView):
@@ -405,6 +417,7 @@ class CityListView(APIView):
         cities = City.objects.all()
         serializer = self.serializer_class(cities, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class SearchUserAPIView(APIView):
     serializer_class = UserPublicInfoSerializer

@@ -52,20 +52,26 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False, verbose_name='is user staff?')
     avatar = models.ImageField(upload_to='images/profile_images', verbose_name='profile avatar', null=True, blank=True)
 
-    Rating = models.FloatField(default=0.0)  # Field to store the user's rating
+    Content_Rating = models.FloatField(default=0.0)  # Field to store the user's rating
+    View_Rating = models.FloatField(default=0.0)  # Field to store the user's rating
+    Total_Rating = models.FloatField(default=0.0)  # Field to store the user's rating
+
+    First_login = models.BooleanField(default=True)
+
     USERNAME_FIELD = 'phone'
     REQUIRED_FIELDS = ['full_name']
 
-    class Meta:
-        verbose_name = 'User table'
 
-    # def save(self, *args, **kwargs):
-    #     self.email = self.email.lower()  # Convert email to lowercase
-    #     super().save(*args, **kwargs)
+
 
     class Meta:
         verbose_name = 'Uesr'
         verbose_name_plural = 'Users'
+
+    def save(self, *args, **kwargs):
+        # Update Total_Rating to be the sum of Content_Rating and View_Rating
+        self.Total_Rating = round(self.Content_Rating + self.View_Rating,1)
+        super().save(*args, **kwargs)  # Call the original save method
 
     def __str__(self):
         return self.phone
